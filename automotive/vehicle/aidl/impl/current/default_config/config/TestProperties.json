@@ -205,5 +205,56 @@
                 "VehicleVendorPermission::PERMISSION_DEFAULT"
             ]
         }
+        ,
+        {
+            "property": "TestVendorProperty::VENDOR_EXTENSION_RPM_UDS_PROPERTY",
+            "defaultValue": {
+                "int32Values": [
+                    0
+                ]
+            },
+            "access": "VehiclePropertyAccess::READ_WRITE",
+            "changeMode": "VehiclePropertyChangeMode::ON_CHANGE"
+        },
+        {
+            "property": "TestVendorProperty::VENDOR_EXTENSION_SPEED_UDS_PROPERTY",
+            "defaultValue": {
+                "int32Values": [
+                    0
+                ]
+            },
+            "access": "VehiclePropertyAccess::READ_WRITE",
+            "changeMode": "VehiclePropertyChangeMode::ON_CHANGE"
+        },
+        {
+            "property": "TestVendorProperty::VENDOR_EXTENSION_OILTEMP_UDS_PROPERTY",
+            "defaultValue": {
+                "int32Values": [
+                    0
+                ]
+            },
+            "access": "VehiclePropertyAccess::READ_WRITE",
+            "changeMode": "VehiclePropertyChangeMode::ON_CHANGE"
+        },
+        {
+            "property": "TestVendorProperty::VENDOR_EXTENSION_AIRFLOW_UDS_PROPERTY",
+            "defaultValue": {
+                "int32Values": [
+                    0
+                ]
+            },
+            "access": "VehiclePropertyAccess::READ_WRITE",
+            "changeMode": "VehiclePropertyChangeMode::ON_CHANGE"
+        },
+        {
+            "property": "TestVendorProperty::VENDOR_EXTENSION_TIREPRES_UDS_PROPERTY",
+            "defaultValue": {
+                "int32Values": [
+                    0
+                ]
+            },
+            "access": "VehiclePropertyAccess::READ_WRITE",
+            "changeMode": "VehiclePropertyChangeMode::ON_CHANGE"
+        }
     ]
 }
