@@ -142,4 +142,49 @@ enum TestVendorProperty {
      * VehiclePropertyGroup.VENDOR | VehicleArea.GLOBAL | VehiclePropertyGroup.STRING
      */
     VENDOR_EXTENSION_STRING_PROPERTY = 0x103 + 0x20000000 + 0x01000000 + 0x00100000,
+     /**
+     * Property used for {@code CarVendorPropertyCustomPermissionTest}.
+     *
+     * VehiclePropertyGroup.VENDOR | VehicleArea.GLOBAL | VehiclePropertyGroup.INT32
+     * Decimal Representation = 557842692
+     */
+    VENDOR_EXTENSION_RPM_UDS_PROPERTY = 0x104 + 0x20000000 + 0x01000000 + 0x00400000,
+    
+    /**
+     * Property used for {@code CarVendorPropertyCustomPermissionTest}.
+     *
+     * VehiclePropertyGroup.VENDOR | VehicleArea.GLOBAL | VehiclePropertyGroup.INT32
+     * Decimal Representation = 557842693
+     */
+    VENDOR_EXTENSION_SPEED_UDS_PROPERTY = 0x105 + 0x20000000 + 0x01000000 + 0x00400000,
+     /**
+     * Property used for {@code CarVendorPropertyCustomPermissionTest}.
+     *
+     * VehiclePropertyGroup.VENDOR | VehicleArea.GLOBAL | VehiclePropertyGroup.INT32
+     * Decimal Representation = 557842694
+     */
+    VENDOR_EXTENSION_OILTEMP_UDS_PROPERTY = 0x106 + 0x20000000 + 0x01000000 + 0x00400000,
+    
+    /**
+     * Property used for {@code CarVendorPropertyCustomPermissionTest}.
+     *
+     * VehiclePropertyGroup.VENDOR | VehicleArea.GLOBAL | VehiclePropertyGroup.INT32
+     * Decimal Representation = 557842695
+     */
+    VENDOR_EXTENSION_AIRFLOW_UDS_PROPERTY = 0x107 + 0x20000000 + 0x01000000 + 0x00400000,
+     /**
+     * Property used for {@code CarVendorPropertyCustomPermissionTest}.
+     *
+     * VehiclePropertyGroup.VENDOR | VehicleArea.GLOBAL | VehiclePropertyGroup.INT32
+     * Decimal Representation = 557842696
+     */
+    VENDOR_EXTENSION_TIREPRES_UDS_PROPERTY = 0x108 + 0x20000000 + 0x01000000 + 0x00400000,
+    
+    /**
+     * Property used for {@code CarVendorPropertyCustomPermissionTest}.
+     *
+     * VehiclePropertyGroup.VENDOR | VehicleArea.GLOBAL | VehiclePropertyGroup.STRING
+     * Decimal Representation = 554696969
+     */
+    VENDOR_EXTENSION_STRING_DTC_PROPERTY = 0x109 + 0x20000000 + 0x01000000 + 0x00100000,
 }
