@@ -63,6 +63,10 @@ cc_defaults {
         "libgrpc++",
         "libjsoncpp",
         "libprotobuf-cpp-full",
+        "libspi",
+        "libmcp251x",
+        "libuds",
+        "liblog"
     ],
     export_static_lib_headers: ["VehicleHalUtils-V3"],
 }
