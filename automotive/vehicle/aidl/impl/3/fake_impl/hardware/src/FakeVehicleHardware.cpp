@@ -43,6 +43,12 @@
 #include <unordered_set>
 #include <vector>
 
+#include <SPI.hpp>
+#include <MCP251x.hpp>
+#include <UDS.hpp>
+#include <android/log.h>
+
+
 namespace android {
 namespace hardware {
 namespace automotive {
@@ -847,6 +853,57 @@ FakeVehicleHardware::ValueResultType FakeVehicleHardware::maybeGetSpecialValue(
 
     VhalResult<void> isAdasPropertyAvailableResult;
     switch (propId) {
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_RPM_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+
+            return result ;
+          
+        } 
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_SPEED_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+
+            return result ;
+          
+        } 
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_OILTEMP_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+
+            return result ;
+          
+        } 
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_AIRFLOW_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+
+            return result ;
+          
+        } 
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_TIREPRES_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+
+            return result ;
+          
+        } 
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_INIT_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+
+            return result ;
+            
+          
+        } 
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+
+            return result ;
+
+          
+        } 
         case OBD2_FREEZE_FRAME:
             *isSpecialValue = true;
             result = mFakeObd2Frame->getObd2FreezeFrame(value);
@@ -1056,6 +1113,48 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
     VhalResult<void> isAdasPropertyAvailableResult;
     VhalResult<bool> isCruiseControlTypeStandardResult;
     switch (propId) {
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_RPM_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+          
+        } 
+        break;
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_SPEED_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+          
+        } 
+        break;
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_OILTEMP_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+          
+        } 
+        break;
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_AIRFLOW_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+          
+        } 
+        break;
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_TIREPRES_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+          
+        } 
+        break;
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_INIT_UDS_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+          
+        } 
+        break;
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY): {
+        
+            (*isSpecialValue) = true; 
+          
+        } 
+        break;
         case toInt(VehicleProperty::DISPLAY_BRIGHTNESS):
         case toInt(VehicleProperty::PER_DISPLAY_BRIGHTNESS):
             ALOGD("DISPLAY_BRIGHTNESS: %s", value.toString().c_str());
