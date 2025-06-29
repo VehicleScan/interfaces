@@ -35,7 +35,8 @@
 #include <utils/Log.h>
 #include <utils/SystemClock.h>
 #include <utils/Trace.h>
-
+#include <array>
+#include <thread>
 #include <dirent.h>
 #include <inttypes.h>
 #include <sys/types.h>
@@ -102,6 +103,16 @@ using ::android::base::Result;
 using ::android::base::ScopedLockAssertion;
 using ::android::base::StartsWith;
 using ::android::base::StringPrintf;
+
+
+std::thread worker;
+std::array<uint32_t,5> canData = {0x00, 0x00, 0x00, 0x00, 0x00};
+enum class UdsSearchState{
+    FREE,
+    RPM,
+    SPEED,
+    BUSY    
+};
 
 // In order to test large number of vehicle property configs, we might generate additional fake
 // property config start from this ID. These fake properties are for getPropertyList,
@@ -890,11 +901,50 @@ FakeVehicleHardware::ValueResultType FakeVehicleHardware::maybeGetSpecialValue(
         } 
         case toInt(TestVendorProperty::VENDOR_EXTENSION_INIT_UDS_PROPERTY): {
         
-            (*isSpecialValue) = true; 
+            (*isSpecialValue) = true;
 
-            return result ;
-            
-          
+            worker = std::thread([]() {
+                SPI::Config config;
+                config.device = "/dev/spidev0.0";
+                config.speed_hz = 10000000;
+
+                SPI spi(config);
+                MCP251x can(spi);
+
+                can.reset();
+                can.configure();
+                can.setBitrate(0x03,0xFA,0x87); /*125 kbps */
+                can.setNormalMode();
+                UDS uds(can);
+                UdsSearchState searchstate = UdsSearchState::FREE;
+                while (true) {
+                    UDS::UDS_Msg msg;
+                    msg.sid = UDS::SID::READ_DATA;
+                    msg.data.push_back(0xF1);
+                    msg.pci = UDS::PCI::SINGLE_FRAME;
+
+
+                    switch(searchstate){
+                        case UdsSearchState::FREE:
+                            uds.sendRequest(msg);
+
+                            break;
+                        case UdsSearchState::RPM:
+                            
+                            break;
+                        case UdsSearchState::SPEED:
+                            
+                            break;
+                        case UdsSearchState:: BUSY:
+                            break;
+                    }
+                }
+            });
+
+            if(worker.joinable()) {
+                worker.join();
+            }
+            return result;
         } 
         case toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY): {
         
