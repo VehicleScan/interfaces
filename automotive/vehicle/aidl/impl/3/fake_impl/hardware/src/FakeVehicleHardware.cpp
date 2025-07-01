@@ -43,6 +43,7 @@
 #include <regex>
 #include <unordered_set>
 #include <vector>
+#include <memory>
 
 #include <SPI.hpp>
 #include <MCP251x.hpp>
@@ -107,7 +108,7 @@ using ::android::base::StringPrintf;
 
 std::thread worker;
 std::array<uint32_t,5> canData = {0x00, 0x00, 0x00, 0x00, 0x00};
-enum class UdsSearchState{
+enum class UDS_SearchState{
     FREE,
     RPM,
     SPEED,
@@ -865,11 +866,9 @@ FakeVehicleHardware::ValueResultType FakeVehicleHardware::maybeGetSpecialValue(
     VhalResult<void> isAdasPropertyAvailableResult;
     switch (propId) {
         case toInt(TestVendorProperty::VENDOR_EXTENSION_RPM_UDS_PROPERTY): {
-        
             (*isSpecialValue) = true; 
-
+            result = mValuePool->obtainInt32(canData[0]);
             return result ;
-          
         } 
         case toInt(TestVendorProperty::VENDOR_EXTENSION_SPEED_UDS_PROPERTY): {
         
@@ -902,48 +901,6 @@ FakeVehicleHardware::ValueResultType FakeVehicleHardware::maybeGetSpecialValue(
         case toInt(TestVendorProperty::VENDOR_EXTENSION_INIT_UDS_PROPERTY): {
         
             (*isSpecialValue) = true;
-
-            worker = std::thread([]() {
-                SPI::Config config;
-                config.device = "/dev/spidev0.0";
-                config.speed_hz = 10000000;
-
-                SPI spi(config);
-                MCP251x can(spi);
-
-                can.reset();
-                can.configure();
-                can.setBitrate(0x03,0xFA,0x87); /*125 kbps */
-                can.setNormalMode();
-                UDS uds(can);
-                UdsSearchState searchstate = UdsSearchState::FREE;
-                while (true) {
-                    UDS::UDS_Msg msg;
-                    msg.sid = UDS::SID::READ_DATA;
-                    msg.data.push_back(0xF1);
-                    msg.pci = UDS::PCI::SINGLE_FRAME;
-
-
-                    switch(searchstate){
-                        case UdsSearchState::FREE:
-                            uds.sendRequest(msg);
-
-                            break;
-                        case UdsSearchState::RPM:
-                            
-                            break;
-                        case UdsSearchState::SPEED:
-                            
-                            break;
-                        case UdsSearchState:: BUSY:
-                            break;
-                    }
-                }
-            });
-
-            if(worker.joinable()) {
-                worker.join();
-            }
             return result;
         } 
         case toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY): {
@@ -1196,7 +1153,55 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
         case toInt(TestVendorProperty::VENDOR_EXTENSION_INIT_UDS_PROPERTY): {
         
             (*isSpecialValue) = true; 
-          
+            
+            worker = std::thread([]() {
+                SPI::Config config;
+                config.device = "/dev/spidev0.0";
+                config.speed_hz = 10000000;
+
+                SPI spi(config);
+                MCP251x can(spi);
+                std::array<uint8_t, 8> receivedData = {};
+                can.reset();
+                can.configure();
+                can.setBitrate(0x03,0xFA,0x87); /*125 kbps */
+                can.setNormalMode();
+                std::shared_ptr<UDS_> uds = std::make_shared<UDS_>(can);
+                UDS_SearchState searchstate = UDS_SearchState::FREE;
+                int timeoutCount = 0;
+                while (true) {
+                    UDS_::UDS__Msg msg;
+                    msg.sid = UDS_::SID::READ_DATA;
+                    msg.ReqParams.push_back(0xF1);
+                    msg.pci = UDS_::PCI::SINGLE_FRAME;
+                    msg.req_params_length = 1;
+                    
+                    switch(searchstate){
+                        case UDS_SearchState::FREE:
+                            uds->sendRequest(msg);
+                            while(!uds->checkReceived(receivedData,8,UDS_::CAN_ID::CLIENT_ID) && timeoutCount < 10) {
+                                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                                timeoutCount++;
+                            }
+                            timeoutCount = 0;
+                            canData[0] = receivedData[0];
+                            break;
+                        case UDS_SearchState::RPM:
+                            
+                            break;
+                        case UDS_SearchState::SPEED:
+                            
+                            break;
+                        case UDS_SearchState:: BUSY:
+                            break;
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                }
+            });
+
+            if(worker.joinable()) {
+                worker.join();
+            }
         } 
         break;
         case toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY): {
