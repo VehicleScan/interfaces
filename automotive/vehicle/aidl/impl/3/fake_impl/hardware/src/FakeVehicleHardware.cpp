@@ -35,21 +35,13 @@
 #include <utils/Log.h>
 #include <utils/SystemClock.h>
 #include <utils/Trace.h>
-#include <array>
-#include <thread>
+
 #include <dirent.h>
 #include <inttypes.h>
 #include <sys/types.h>
 #include <regex>
 #include <unordered_set>
 #include <vector>
-#include <memory>
-
-#include <SPI.hpp>
-#include <MCP251x.hpp>
-#include <UDS.hpp>
-#include <android/log.h>
-
 
 namespace android {
 namespace hardware {
@@ -104,16 +96,6 @@ using ::android::base::Result;
 using ::android::base::ScopedLockAssertion;
 using ::android::base::StartsWith;
 using ::android::base::StringPrintf;
-
-
-std::thread worker;
-std::array<uint32_t,5> canData = {0x00, 0x00, 0x00, 0x00, 0x00};
-enum class UDS_SearchState{
-    FREE,
-    RPM,
-    SPEED,
-    BUSY    
-};
 
 // In order to test large number of vehicle property configs, we might generate additional fake
 // property config start from this ID. These fake properties are for getPropertyList,
@@ -414,6 +396,10 @@ std::unordered_map<int32_t, ConfigDeclaration> FakeVehicleHardware::loadConfigDe
 }
 
 void FakeVehicleHardware::init(int32_t s2rS2dConfig) {
+
+    can_uds_client = std::make_shared<CAN_UDS_client>(can_interface,can_txId, can_rxId);
+    can_uds_client->set_flow_control(client_FC_BS, client_FC_STmin);
+
     maybeGetGrpcServiceInfo(&mPowerControllerServiceAddress);
 
     for (auto& [_, configDeclaration] : loadConfigDeclarations()) {
@@ -865,52 +851,6 @@ FakeVehicleHardware::ValueResultType FakeVehicleHardware::maybeGetSpecialValue(
 
     VhalResult<void> isAdasPropertyAvailableResult;
     switch (propId) {
-        case toInt(TestVendorProperty::VENDOR_EXTENSION_RPM_UDS_PROPERTY): {
-            (*isSpecialValue) = true; 
-            result = mValuePool->obtainInt32(canData[0]);
-            return result ;
-        } 
-        case toInt(TestVendorProperty::VENDOR_EXTENSION_SPEED_UDS_PROPERTY): {
-        
-            (*isSpecialValue) = true; 
-
-            return result ;
-          
-        } 
-        case toInt(TestVendorProperty::VENDOR_EXTENSION_OILTEMP_UDS_PROPERTY): {
-        
-            (*isSpecialValue) = true; 
-
-            return result ;
-          
-        } 
-        case toInt(TestVendorProperty::VENDOR_EXTENSION_AIRFLOW_UDS_PROPERTY): {
-        
-            (*isSpecialValue) = true; 
-
-            return result ;
-          
-        } 
-        case toInt(TestVendorProperty::VENDOR_EXTENSION_TIREPRES_UDS_PROPERTY): {
-        
-            (*isSpecialValue) = true; 
-
-            return result ;
-          
-        } 
-        case toInt(TestVendorProperty::VENDOR_EXTENSION_INIT_UDS_PROPERTY): {
-        
-            (*isSpecialValue) = true;
-            return result;
-        } 
-        case toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY): {
-        
-            (*isSpecialValue) = true; 
-
-            return result ;
-
-          
-        } 
         case OBD2_FREEZE_FRAME:
             *isSpecialValue = true;
             result = mFakeObd2Frame->getObd2FreezeFrame(value);
@@ -1123,93 +1063,237 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
         case toInt(TestVendorProperty::VENDOR_EXTENSION_RPM_UDS_PROPERTY): {
         
             (*isSpecialValue) = true; 
-          
+             std::thread([this]() {
+                std::vector<uint8_t> payload = {0x56, 0x78}; 
+                CAN_UDS_client::UDS_MSG request{
+                    CAN_UDS_client::UDS_SERVICE::READ_DATA_BY_IDENTIFIER,
+                    payload
+                };
+
+                CAN_UDS_client::UDS_MSG udsResponse = can_uds_client->send_request(request);
+
+                if (udsResponse.nrc != CAN_UDS_client::UDS_NRC::NO_ERROR) {
+                    ALOGE("Failed to send UDS request, NRC: %d", static_cast<int>(udsResponse.nrc));
+
+                    if (mOnPropertySetErrorCallback) {
+                        SetValueErrorEvent err;
+                        err.propId = toInt(TestVendorProperty::VENDOR_EXTENSION_RPM_UDS_PROPERTY);
+                        err.areaId = 0; 
+                        err.errorCode = static_cast<aidl::android::hardware::automotive::vehicle::StatusCode>(
+                            static_cast<int>(udsResponse.nrc)); 
+
+                        (*mOnPropertySetErrorCallback)(std::vector{err});
+                    }
+
+                    return;
+                }
+                if (udsResponse.payload.size() < 3) {
+                    ALOGE("Invalid response size");
+                    return;
+                }
+
+                uint32_t rpm = static_cast<uint32_t>(udsResponse.payload[2] | 
+                    (udsResponse.payload[1] << 8)); 
+
+                auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(rpm));
+                respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_RPM_UDS_PROPERTY);
+                respVal->timestamp = elapsedRealtimeNano();
+                ALOGE("RPM value obtained: %d", rpm);
+                if (mOnPropertyChangeCallback) {
+                    (*mOnPropertyChangeCallback)(std::vector<VehiclePropValue>{*respVal});
+                }
+            }).detach();
         } 
         break;
+
+
         case toInt(TestVendorProperty::VENDOR_EXTENSION_SPEED_UDS_PROPERTY): {
         
             (*isSpecialValue) = true; 
-          
+             std::thread([this]() {
+                std::vector<uint8_t> payload = {0x12, 0x34}; 
+                CAN_UDS_client::UDS_MSG request{
+                    CAN_UDS_client::UDS_SERVICE::READ_DATA_BY_IDENTIFIER,
+                    payload
+                };
+
+                CAN_UDS_client::UDS_MSG udsResponse = can_uds_client->send_request(request);
+
+                if (udsResponse.nrc != CAN_UDS_client::UDS_NRC::NO_ERROR) {
+                    ALOGE("Failed to send UDS request, NRC: %d", static_cast<int>(udsResponse.nrc));
+
+                    if (mOnPropertySetErrorCallback) {
+                        SetValueErrorEvent err;
+                        err.propId = toInt(TestVendorProperty::VENDOR_EXTENSION_SPEED_UDS_PROPERTY);
+                        err.areaId = 0; 
+                        err.errorCode = static_cast<aidl::android::hardware::automotive::vehicle::StatusCode>(
+                            static_cast<int>(udsResponse.nrc)); 
+
+                        (*mOnPropertySetErrorCallback)(std::vector{err});
+                    }
+
+                    return;
+                }
+                if (udsResponse.payload.size() < 3) {
+                    ALOGE("Invalid response size");
+                    return;
+                }
+
+                uint32_t speed = static_cast<uint32_t>(udsResponse.payload[2] | 
+                    (udsResponse.payload[1] << 8)); 
+
+                auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(speed));
+                respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_SPEED_UDS_PROPERTY);
+                respVal->timestamp = elapsedRealtimeNano();
+                ALOGE("Speed value obtained: %d", speed);    
+                if (mOnPropertyChangeCallback) {
+                    (*mOnPropertyChangeCallback)(std::vector<VehiclePropValue>{*respVal});
+                }
+            }).detach();
         } 
         break;
+
+
         case toInt(TestVendorProperty::VENDOR_EXTENSION_OILTEMP_UDS_PROPERTY): {
         
             (*isSpecialValue) = true; 
-          
+             std::thread([this]() {
+                std::vector<uint8_t> payload = {0xAB, 0xCD}; 
+                CAN_UDS_client::UDS_MSG request{
+                    CAN_UDS_client::UDS_SERVICE::READ_DATA_BY_IDENTIFIER,
+                    payload
+                };
+
+                CAN_UDS_client::UDS_MSG udsResponse = can_uds_client->send_request(request);
+
+                if (udsResponse.nrc != CAN_UDS_client::UDS_NRC::NO_ERROR) {
+                    ALOGE("Failed to send UDS request, NRC: %d", static_cast<int>(udsResponse.nrc));
+
+                    if (mOnPropertySetErrorCallback) {
+                        SetValueErrorEvent err;
+                        err.propId = toInt(TestVendorProperty::VENDOR_EXTENSION_OILTEMP_UDS_PROPERTY);
+                        err.areaId = 0; 
+                        err.errorCode = static_cast<aidl::android::hardware::automotive::vehicle::StatusCode>(
+                            static_cast<int>(udsResponse.nrc)); 
+
+                        (*mOnPropertySetErrorCallback)(std::vector{err});
+                    }
+
+                    return;
+                }
+                if (udsResponse.payload.size() < 3) {
+                    ALOGE("Invalid response size");
+                    return;
+                }
+
+                uint32_t oiltemp = static_cast<uint32_t>(udsResponse.payload[2] | 
+                    (udsResponse.payload[1] << 8)); 
+
+                auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(oiltemp));
+                respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_OILTEMP_UDS_PROPERTY);
+                respVal->timestamp = elapsedRealtimeNano();
+                ALOGE("Speed value obtained: %d", oiltemp);    
+                if (mOnPropertyChangeCallback) {
+                    (*mOnPropertyChangeCallback)(std::vector<VehiclePropValue>{*respVal});
+                }
+            }).detach();
         } 
         break;
+
+
         case toInt(TestVendorProperty::VENDOR_EXTENSION_AIRFLOW_UDS_PROPERTY): {
         
             (*isSpecialValue) = true; 
-          
+             std::thread([this]() {
+                std::vector<uint8_t> payload = {0x01, 0x23}; 
+                CAN_UDS_client::UDS_MSG request{
+                    CAN_UDS_client::UDS_SERVICE::READ_DATA_BY_IDENTIFIER,
+                    payload
+                };
+
+                CAN_UDS_client::UDS_MSG udsResponse = can_uds_client->send_request(request);
+
+                if (udsResponse.nrc != CAN_UDS_client::UDS_NRC::NO_ERROR) {
+                    ALOGE("Failed to send UDS request, NRC: %d", static_cast<int>(udsResponse.nrc));
+
+                    if (mOnPropertySetErrorCallback) {
+                        SetValueErrorEvent err;
+                        err.propId = toInt(TestVendorProperty::VENDOR_EXTENSION_AIRFLOW_UDS_PROPERTY);
+                        err.areaId = 0; 
+                        err.errorCode = static_cast<aidl::android::hardware::automotive::vehicle::StatusCode>(
+                            static_cast<int>(udsResponse.nrc)); 
+
+                        (*mOnPropertySetErrorCallback)(std::vector{err});
+                    }
+
+                    return;
+                }
+                if (udsResponse.payload.size() < 3) {
+                    ALOGE("Invalid response size");
+                    return;
+                }
+
+                uint32_t airlow = static_cast<uint32_t>(udsResponse.payload[2] | 
+                    (udsResponse.payload[1] << 8)); 
+
+                auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(airlow));
+                respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_AIRFLOW_UDS_PROPERTY);
+                respVal->timestamp = elapsedRealtimeNano();
+                ALOGE("airflow value obtained: %d", airlow);    
+
+                if (mOnPropertyChangeCallback) {
+                    (*mOnPropertyChangeCallback)(std::vector<VehiclePropValue>{*respVal});
+                }
+            }).detach();
         } 
         break;
+
         case toInt(TestVendorProperty::VENDOR_EXTENSION_TIREPRES_UDS_PROPERTY): {
         
             (*isSpecialValue) = true; 
-          
-        } 
-        break;
-        case toInt(TestVendorProperty::VENDOR_EXTENSION_INIT_UDS_PROPERTY): {
-        
-            (*isSpecialValue) = true; 
-            
-            worker = std::thread([]() {
-                SPI::Config config;
-                config.device = "/dev/spidev0.0";
-                config.speed_hz = 10000000;
+             std::thread([this]() {
+                std::vector<uint8_t> payload = {0x34, 0x56}; 
+                CAN_UDS_client::UDS_MSG request{
+                    CAN_UDS_client::UDS_SERVICE::READ_DATA_BY_IDENTIFIER,
+                    payload
+                };
 
-                SPI spi(config);
-                MCP251x can(spi);
-                std::array<uint8_t, 8> receivedData = {};
-                can.reset();
-                can.configure();
-                can.setBitrate(0x03,0xFA,0x87); /*125 kbps */
-                can.setNormalMode();
-                std::shared_ptr<UDS_> uds = std::make_shared<UDS_>(can);
-                UDS_SearchState searchstate = UDS_SearchState::FREE;
-                int timeoutCount = 0;
-                while (true) {
-                    UDS_::UDS__Msg msg;
-                    msg.sid = UDS_::SID::READ_DATA;
-                    msg.ReqParams.push_back(0xF1);
-                    msg.pci = UDS_::PCI::SINGLE_FRAME;
-                    msg.req_params_length = 1;
-                    
-                    switch(searchstate){
-                        case UDS_SearchState::FREE:
-                            uds->sendRequest(msg);
-                            while(!uds->checkReceived(receivedData,8,UDS_::CAN_ID::CLIENT_ID) && timeoutCount < 10) {
-                                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                                timeoutCount++;
-                            }
-                            timeoutCount = 0;
-                            canData[0] = receivedData[0];
-                            break;
-                        case UDS_SearchState::RPM:
-                            
-                            break;
-                        case UDS_SearchState::SPEED:
-                            
-                            break;
-                        case UDS_SearchState:: BUSY:
-                            break;
+                CAN_UDS_client::UDS_MSG udsResponse = can_uds_client->send_request(request);
+
+                if (udsResponse.nrc != CAN_UDS_client::UDS_NRC::NO_ERROR) {
+                    ALOGE("Failed to send UDS request, NRC: %d", static_cast<int>(udsResponse.nrc));
+
+                    if (mOnPropertySetErrorCallback) {
+                        SetValueErrorEvent err;
+                        err.propId = toInt(TestVendorProperty::VENDOR_EXTENSION_TIREPRES_UDS_PROPERTY);
+                        err.areaId = 0; 
+                        err.errorCode = static_cast<aidl::android::hardware::automotive::vehicle::StatusCode>(
+                            static_cast<int>(udsResponse.nrc)); 
+
+                        (*mOnPropertySetErrorCallback)(std::vector{err});
                     }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                }
-            });
 
-            if(worker.joinable()) {
-                worker.join();
-            }
+                    return;
+                }
+                if (udsResponse.payload.size() < 3) {
+                    ALOGE("Invalid response size");
+                    return;
+                }
+
+                uint32_t tirePressure = static_cast<uint32_t>(udsResponse.payload[2] | 
+                    (udsResponse.payload[1] << 8)); 
+
+                auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(tirePressure));
+                respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_TIREPRES_UDS_PROPERTY);
+                respVal->timestamp = elapsedRealtimeNano();
+                ALOGE("tire pressure value obtained: %d", tirePressure);
+                if (mOnPropertyChangeCallback) {
+                    (*mOnPropertyChangeCallback)(std::vector<VehiclePropValue>{*respVal});
+                }
+            }).detach();          
         } 
         break;
-        case toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY): {
-        
-            (*isSpecialValue) = true; 
-          
-        } 
-        break;
+
         case toInt(VehicleProperty::DISPLAY_BRIGHTNESS):
         case toInt(VehicleProperty::PER_DISPLAY_BRIGHTNESS):
             ALOGD("DISPLAY_BRIGHTNESS: %s", value.toString().c_str());
