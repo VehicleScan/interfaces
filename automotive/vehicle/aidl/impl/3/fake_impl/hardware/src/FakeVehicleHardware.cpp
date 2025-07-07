@@ -1064,7 +1064,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
         
             (*isSpecialValue) = true; 
              std::thread([this]() {
-                std::vector<uint8_t> payload = {0x56, 0x78}; 
+                std::vector<uint8_t> payload = {0xF1, 0xA1}; 
                 CAN_UDS_client::UDS_MSG request{
                     CAN_UDS_client::UDS_SERVICE::READ_DATA_BY_IDENTIFIER,
                     payload
@@ -1092,8 +1092,8 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                     return;
                 }
 
-                uint32_t rpm = static_cast<uint32_t>(udsResponse.payload[2] | 
-                    (udsResponse.payload[1] << 8)); 
+                uint32_t rpm = static_cast<uint32_t>((udsResponse.payload[3] << 8) | 
+                    udsResponse.payload[4]); 
 
                 auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(rpm));
                 respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_RPM_UDS_PROPERTY);
@@ -1111,7 +1111,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
         
             (*isSpecialValue) = true; 
              std::thread([this]() {
-                std::vector<uint8_t> payload = {0x12, 0x34}; 
+                std::vector<uint8_t> payload = {0xF1, 0xA2}; 
                 CAN_UDS_client::UDS_MSG request{
                     CAN_UDS_client::UDS_SERVICE::READ_DATA_BY_IDENTIFIER,
                     payload
@@ -1139,8 +1139,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                     return;
                 }
 
-                uint32_t speed = static_cast<uint32_t>(udsResponse.payload[2] | 
-                    (udsResponse.payload[1] << 8)); 
+                uint32_t speed = static_cast<uint32_t>(udsResponse.payload[3]); 
 
                 auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(speed));
                 respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_SPEED_UDS_PROPERTY);
@@ -1158,7 +1157,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
         
             (*isSpecialValue) = true; 
              std::thread([this]() {
-                std::vector<uint8_t> payload = {0xAB, 0xCD}; 
+                std::vector<uint8_t> payload = {0xF1, 0xA0}; 
                 CAN_UDS_client::UDS_MSG request{
                     CAN_UDS_client::UDS_SERVICE::READ_DATA_BY_IDENTIFIER,
                     payload
@@ -1186,8 +1185,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                     return;
                 }
 
-                uint32_t oiltemp = static_cast<uint32_t>(udsResponse.payload[2] | 
-                    (udsResponse.payload[1] << 8)); 
+                uint32_t oiltemp = static_cast<uint32_t>(udsResponse.payload[3]); 
 
                 auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(oiltemp));
                 respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_OILTEMP_UDS_PROPERTY);
@@ -1205,7 +1203,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
         
             (*isSpecialValue) = true; 
              std::thread([this]() {
-                std::vector<uint8_t> payload = {0x01, 0x23}; 
+                std::vector<uint8_t> payload = {0xF1, 0xA4}; 
                 CAN_UDS_client::UDS_MSG request{
                     CAN_UDS_client::UDS_SERVICE::READ_DATA_BY_IDENTIFIER,
                     payload
@@ -1233,8 +1231,8 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                     return;
                 }
 
-                uint32_t airlow = static_cast<uint32_t>(udsResponse.payload[2] | 
-                    (udsResponse.payload[1] << 8)); 
+                uint32_t airlow = static_cast<uint32_t>(udsResponse.payload[4] | 
+                    (udsResponse.payload[3] << 8)); 
 
                 auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(airlow));
                 respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_AIRFLOW_UDS_PROPERTY);
@@ -1252,7 +1250,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
         
             (*isSpecialValue) = true; 
              std::thread([this]() {
-                std::vector<uint8_t> payload = {0x34, 0x56}; 
+                std::vector<uint8_t> payload = {0xF1, 0xA3}; 
                 CAN_UDS_client::UDS_MSG request{
                     CAN_UDS_client::UDS_SERVICE::READ_DATA_BY_IDENTIFIER,
                     payload
@@ -1281,7 +1279,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                 }
 
                 uint32_t tirePressure = static_cast<uint32_t>(udsResponse.payload[2] | 
-                    (udsResponse.payload[1] << 8)); 
+                    (udsResponse.payload[3])); 
 
                 auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(tirePressure));
                 respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_TIREPRES_UDS_PROPERTY);
@@ -1292,6 +1290,103 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                 }
             }).detach();          
         } 
+        break;
+
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY): {
+            (*isSpecialValue) = true; 
+            std::thread([this]() {
+                std::vector<uint8_t> payload = {0x02, 0xFF};  // SubFunction + StatusMask
+                CAN_UDS_client::UDS_MSG request{
+                    CAN_UDS_client::UDS_SERVICE::READ_DTC_INFORMATION,
+                    payload
+                };
+
+                CAN_UDS_client::UDS_MSG udsResponse = can_uds_client->send_request(request);
+
+                if (udsResponse.nrc != CAN_UDS_client::UDS_NRC::NO_ERROR) {
+                    ALOGE("Failed to send UDS request, NRC: %d", static_cast<int>(udsResponse.nrc));
+
+                    if (mOnPropertySetErrorCallback) {
+                        SetValueErrorEvent err;
+                        err.propId = toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY);
+                        err.areaId = 0; 
+                        err.errorCode = static_cast<aidl::android::hardware::automotive::vehicle::StatusCode>(
+                            static_cast<int>(udsResponse.nrc)); 
+                        (*mOnPropertySetErrorCallback)(std::vector{err});
+                    }
+                    return;
+                }
+
+                if (udsResponse.payload.size() < 4) {
+                    ALOGE("Invalid DTC response size");
+                    return;
+                }
+
+                std::string dtcStr;
+                for (size_t i = 4; i + 2 < udsResponse.payload.size(); i += 3) {
+                    uint32_t dtc = (udsResponse.payload[i] << 16) |
+                                (udsResponse.payload[i + 1] << 8) |
+                                udsResponse.payload[i + 2];
+                    char buffer[10];
+                    snprintf(buffer, sizeof(buffer), "%06X ", dtc);
+                    dtcStr += buffer;
+                }
+
+                auto respVal = mValuePool->obtainString(dtcStr.c_str());
+                respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY);
+                respVal->timestamp = elapsedRealtimeNano();
+                respVal->value.stringValue = dtcStr;
+
+                ALOGE("DTCs received: %s", dtcStr.c_str());
+
+                if (mOnPropertyChangeCallback) {
+                    (*mOnPropertyChangeCallback)(std::vector<VehiclePropValue>{*respVal});
+                }
+            }).detach();
+        }
+        break;
+
+
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_CLEAR_DTC_PROPERTY): {
+            (*isSpecialValue) = true; 
+             std::thread([this]() {
+                std::vector<uint8_t> payload = {0xFF, 0xFF}; 
+                CAN_UDS_client::UDS_MSG request{
+                    CAN_UDS_client::UDS_SERVICE::CLEAR_DIAGNOSTIC_INFORMATION,
+                    payload
+                };
+
+                CAN_UDS_client::UDS_MSG udsResponse = can_uds_client->send_request(request);
+
+                if (udsResponse.nrc != CAN_UDS_client::UDS_NRC::NO_ERROR) {
+                    ALOGE("Failed to send UDS request, NRC: %d", static_cast<int>(udsResponse.nrc));
+
+                    if (mOnPropertySetErrorCallback) {
+                        SetValueErrorEvent err;
+                        err.propId = toInt(TestVendorProperty::VENDOR_EXTENSION_CLEAR_DTC_PROPERTY);
+                        err.areaId = 0; 
+                        err.errorCode = static_cast<aidl::android::hardware::automotive::vehicle::StatusCode>(
+                            static_cast<int>(udsResponse.nrc)); 
+
+                        (*mOnPropertySetErrorCallback)(std::vector{err});
+                    }
+
+                    return;
+                }
+                if (udsResponse.payload.size() < 3) {
+                    ALOGE("Invalid response size");
+                    return;
+                }
+
+                auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(1));
+                respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_CLEAR_DTC_PROPERTY);
+                respVal->timestamp = elapsedRealtimeNano();
+                ALOGE("DTCS cleared successfully");
+                if (mOnPropertyChangeCallback) {
+                    (*mOnPropertyChangeCallback)(std::vector<VehiclePropValue>{*respVal});
+                }
+            }).detach();
+        }
         break;
 
         case toInt(VehicleProperty::DISPLAY_BRIGHTNESS):
