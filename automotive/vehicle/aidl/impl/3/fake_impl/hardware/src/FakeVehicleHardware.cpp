@@ -1144,7 +1144,14 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                 auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(speed));
                 respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_SPEED_UDS_PROPERTY);
                 respVal->timestamp = elapsedRealtimeNano();
-                ALOGE("Speed value obtained: %d", speed);    
+                ALOGE("Speed value obtained: %d", speed); 
+                std::string hexPayload;
+                for (auto byte : udsResponse.payload) {
+                    char buf[5];
+                    snprintf(buf, sizeof(buf), "%02X ", byte);
+                    hexPayload += buf;
+                }
+                ALOGE("Received UDS Speed response: %s", hexPayload.c_str());   
                 if (mOnPropertyChangeCallback) {
                     (*mOnPropertyChangeCallback)(std::vector<VehiclePropValue>{*respVal});
                 }
@@ -1278,8 +1285,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                     return;
                 }
 
-                uint32_t tirePressure = static_cast<uint32_t>(udsResponse.payload[2] | 
-                    (udsResponse.payload[3])); 
+                uint32_t tirePressure = static_cast<uint32_t>((udsResponse.payload[3])); 
 
                 auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(tirePressure));
                 respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_TIREPRES_UDS_PROPERTY);
