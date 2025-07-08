@@ -260,7 +260,9 @@
         {
             "property": "TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY",
             "defaultValue": {
-                "stringValue": "Vendor String Property"
+                "int32Values": [
+                    0
+                ]
             },
             "access": "VehiclePropertyAccess::READ_WRITE",
             "changeMode": "VehiclePropertyChangeMode::ON_CHANGE"

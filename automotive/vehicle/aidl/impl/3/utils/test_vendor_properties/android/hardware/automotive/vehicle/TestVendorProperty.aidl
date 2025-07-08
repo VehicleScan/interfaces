@@ -184,9 +184,9 @@ enum TestVendorProperty {
      * Property used for {@code CarVendorPropertyCustomPermissionTest}.
      *
      * VehiclePropertyGroup.VENDOR | VehicleArea.GLOBAL | VehiclePropertyGroup.STRING
-     * Decimal Representation = 554696969
+     * Decimal Representation = 557842697
      */
-    VENDOR_EXTENSION_STRING_DTC_PROPERTY = 0x109 + 0x20000000 + 0x01000000 + 0x00100000,
+    VENDOR_EXTENSION_STRING_DTC_PROPERTY = 0x109 + 0x20000000 + 0x01000000 + 0x00400000,
      /**
      * Property used for {@code CarVendorPropertyCustomPermissionTest}.
      *

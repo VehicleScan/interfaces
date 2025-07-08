@@ -1295,7 +1295,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
         case toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY): {
             (*isSpecialValue) = true; 
             std::thread([this]() {
-                std::vector<uint8_t> payload = {0x02, 0xFF};  // SubFunction + StatusMask
+                std::vector<uint8_t> payload = {0x02, 0xFF};  
                 CAN_UDS_client::UDS_MSG request{
                     CAN_UDS_client::UDS_SERVICE::READ_DTC_INFORMATION,
                     payload
@@ -1317,19 +1317,21 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                     return;
                 }
 
-                if (udsResponse.payload.size() < 4) {
-                    ALOGE("Invalid DTC response size");
-                    return;
-                }
-
                 std::string dtcStr;
-                for (size_t i = 4; i + 2 < udsResponse.payload.size(); i += 3) {
-                    uint32_t dtc = (udsResponse.payload[i] << 16) |
-                                (udsResponse.payload[i + 1] << 8) |
-                                udsResponse.payload[i + 2];
-                    char buffer[10];
-                    snprintf(buffer, sizeof(buffer), "%06X ", dtc);
-                    dtcStr += buffer;
+                for(size_t i=4;i< udsResponse.payload.size(); i++) {
+                    if(i==4){
+                        dtcStr += std::to_string(udsResponse.payload[i]);
+                        continue;
+                    }
+                    if (udsResponse.payload[i] == 0xFF) {
+                        break;
+                    }
+                    
+                    if((i-4)%3 == 0){
+                        dtcStr += " ";
+                    }
+                    dtcStr += std::to_string(udsResponse.payload[i]);
+ 
                 }
 
                 auto respVal = mValuePool->obtainString(dtcStr.c_str());
@@ -1347,7 +1349,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
         break;
 
 
-        case toInt(TestVendorProperty::VENDOR_EXTENSION_CLEAR_DTC_PROPERTY): {
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_INIT_UDS_PROPERTY): {
             (*isSpecialValue) = true; 
              std::thread([this]() {
                 std::vector<uint8_t> payload = {0xFF, 0xFF}; 
@@ -1379,7 +1381,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                 }
 
                 auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(1));
-                respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_CLEAR_DTC_PROPERTY);
+                respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_INIT_UDS_PROPERTY);
                 respVal->timestamp = elapsedRealtimeNano();
                 ALOGE("DTCS cleared successfully");
                 if (mOnPropertyChangeCallback) {
