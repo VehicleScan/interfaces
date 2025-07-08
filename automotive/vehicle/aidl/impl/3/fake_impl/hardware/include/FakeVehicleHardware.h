@@ -127,7 +127,7 @@ class FakeVehicleHardware : public IVehicleHardware {
 
   private:
         std::shared_ptr<CAN_UDS_client> can_uds_client;
-        static constexpr uint32_t can_txId = 0x7DF; // Standard CAN ID for UDS requests
+        static constexpr uint32_t can_txId = 0x7E0; // Standard CAN ID for UDS requests
         static constexpr uint32_t can_rxId = 0x7E8; // Standard CAN
         static constexpr uint32_t client_FC_BS = 16; // Block Size
         static constexpr uint32_t client_FC_STmin = 20; // Separation Time
