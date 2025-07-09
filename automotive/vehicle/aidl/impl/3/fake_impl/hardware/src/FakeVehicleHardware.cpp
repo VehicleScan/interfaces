@@ -1099,7 +1099,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                 respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_RPM_UDS_PROPERTY);
                 respVal->timestamp = elapsedRealtimeNano();
                 ALOGE("RPM value obtained: %d", rpm);
-
+                std::string hexPayload;
                 for (auto byte : udsResponse.payload) {
                     char buf[5];
                     snprintf(buf, sizeof(buf), "%02X ", byte);
@@ -1205,7 +1205,8 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                 auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(oiltemp));
                 respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_OILTEMP_UDS_PROPERTY);
                 respVal->timestamp = elapsedRealtimeNano();
-                ALOGE("Speed value obtained: %d", oiltemp); 
+                ALOGE("Speed value obtained: %d", oiltemp);
+                std::string hexPayload; 
                 for (auto byte : udsResponse.payload) {
                     char buf[5];
                     snprintf(buf, sizeof(buf), "%02X ", byte);
@@ -1258,7 +1259,8 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                 auto respVal = mValuePool->obtainInt32(static_cast<int32_t>(airlow));
                 respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_AIRFLOW_UDS_PROPERTY);
                 respVal->timestamp = elapsedRealtimeNano();
-                ALOGE("airflow value obtained: %d", airlow);    
+                ALOGE("airflow value obtained: %d", airlow);
+                   std::string hexPayload;    
                 for (auto byte : udsResponse.payload) {
                     char buf[5];
                     snprintf(buf, sizeof(buf), "%02X ", byte);
@@ -1310,6 +1312,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
                 respVal->prop = toInt(TestVendorProperty::VENDOR_EXTENSION_TIREPRES_UDS_PROPERTY);
                 respVal->timestamp = elapsedRealtimeNano();
                 ALOGE("tire pressure value obtained: %d", tirePressure);
+                   std::string hexPayload;
                 for (auto byte : udsResponse.payload) {
                     char buf[5];
                     snprintf(buf, sizeof(buf), "%02X ", byte);
@@ -1323,7 +1326,7 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
         } 
         break;
 
-        case toString(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY): {
+        case toInt(TestVendorProperty::VENDOR_EXTENSION_STRING_DTC_PROPERTY): {
             (*isSpecialValue) = true; 
             std::thread([this]() {
                 std::vector<uint8_t> payload = {0x02, 0xFF};  
